@@ -1,7 +1,3 @@
-Here is the updated, detailed `README.md`. This version is structured to serve both as a pitch deck and a comprehensive technical guide for any developer looking at your code.
-
-### 📄 Updated `README.md`
-
 ```markdown
 # WAYA (WayaGrid) ⚡️
 
