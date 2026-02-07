@@ -1,0 +1,314 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "The high-performance B2B payment orchestration layer for Afriex.",
+        "title": "Waya API (Afriex Orchestrator)",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "Waya Support",
+            "email": "dev@waya.finance"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/payouts": {
+            "post": {
+                "description": "Accepts a list of recipients, creates customers/payment methods on Afriex, and sends money.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payouts"
+                ],
+                "summary": "Trigger Bulk Payout",
+                "parameters": [
+                    {
+                        "description": "The batch of payouts to process",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.BulkPayoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Batch accepted for background processing",
+                        "schema": {
+                            "$ref": "#/definitions/http.BulkPayoutResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid JSON or payload",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/payouts/{batch_id}": {
+            "get": {
+                "description": "Retrieves all payouts and status for a given batch ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payouts"
+                ],
+                "summary": "Get Batch Status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Unique ID of the payout batch",
+                        "name": "batch_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns batch details and list of payouts",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Batch"
+                        }
+                    },
+                    "404": {
+                        "description": "Batch ID not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/webhooks/afriex": {
+            "post": {
+                "description": "Receives real-time transaction updates (e.g., SUCCESS/FAILED) from Afriex.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Afriex Webhook Listener",
+                "parameters": [
+                    {
+                        "description": "Afriex Webhook Payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid Signature or Payload",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "domain.Batch": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "payouts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Payout"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "totalAmount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "totalCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.Payout": {
+            "type": "object",
+            "properties": {
+                "accountNumber": {
+                    "description": "\"2039...\"",
+                    "type": "string"
+                },
+                "amount": {
+                    "description": "Cents",
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "bankCode": {
+                    "description": "\"033\" (UBA)",
+                    "type": "string"
+                },
+                "bankName": {
+                    "description": "\"United Bank for Africa\"",
+                    "type": "string"
+                },
+                "batchID": {
+                    "type": "string"
+                },
+                "countryCode": {
+                    "description": "\"NG\", \"GH\", \"KE\"",
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "currency": {
+                    "description": "\"NGN\"",
+                    "type": "string"
+                },
+                "errorMessage": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "recipientEmail": {
+                    "description": "\"john@example.com\"",
+                    "type": "string"
+                },
+                "recipientName": {
+                    "description": "\"John Doe\"",
+                    "type": "string"
+                },
+                "recipientPhone": {
+                    "description": "\"+234...\"",
+                    "type": "string"
+                },
+                "recipientTag": {
+                    "description": "Optional: If sending to Afriex Wallet directly",
+                    "type": "string"
+                },
+                "referenceID": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.BulkPayoutRequest": {
+            "type": "object",
+            "properties": {
+                "batch_reference": {
+                    "type": "string",
+                    "example": "JAN_SALARY_2025"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.PayoutItem"
+                    }
+                }
+            }
+        },
+        "http.BulkPayoutResponse": {
+            "type": "object",
+            "properties": {
+                "batch_id": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.PayoutItem": {
+            "type": "object",
+            "properties": {
+                "account_number": {
+                    "type": "string",
+                    "example": "2000012345"
+                },
+                "amount": {
+                    "description": "Transaction Details (Step 3 of Afriex Flow)",
+                    "type": "number",
+                    "example": 5000
+                },
+                "bank_code": {
+                    "description": "Bank Details (Step 2 of Afriex Flow)",
+                    "type": "string",
+                    "example": "033"
+                },
+                "country_code": {
+                    "type": "string",
+                    "example": "NG"
+                },
+                "currency": {
+                    "type": "string",
+                    "example": "NGN"
+                },
+                "recipient_email": {
+                    "type": "string",
+                    "example": "emeka@example.com"
+                },
+                "recipient_name": {
+                    "description": "User Details (Step 1 of Afriex Flow)",
+                    "type": "string",
+                    "example": "Emeka Okonkwo"
+                },
+                "recipient_phone": {
+                    "type": "string",
+                    "example": "+2348012345678"
+                }
+            }
+        }
+    }
+}
