@@ -1,10 +1,7 @@
-```markdown
 # WAYA (WayaGrid) ⚡️
 
 > **The High-Performance Orchestration Layer for African Cross-Border Payouts.**
 > Built for the Afriex Hackathon 2025.
-
----
 
 ## 🚀 Waya's Vision: One API to Pay Africa
 
@@ -104,23 +101,6 @@ Once the server is running, visit the auto-generated Swagger page:
 `http://localhost:8080/swagger/index.html`
 
 ---
-
-## 🚀 Frontend Demo Instructions
-
-The companion Next.js application visualizes the speed of the Orchestrator.
-
-```bash
-# In a separate terminal (outside the Go project)
-cd frontend
-
-# Install dependencies (if not done)
-npm install
-
-# Run the frontend application
-npm run dev
-# Open http://localhost:3000 in your browser
-```
-Use the frontend to paste your JSON payload and watch the Go terminal logs to see the concurrency in action!
 
 ---
 *Built with ❤️ by [Jotham]*
