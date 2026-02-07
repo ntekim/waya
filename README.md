@@ -3,6 +3,8 @@
 > **The High-Performance Orchestration Layer for African Cross-Border Payouts.**
 > Built for the Afriex Hackathon 2025.
 
+---
+
 ## 🚀 Waya's Vision: One API to Pay Africa
 
 The Afriex Business API requires a complex, three-step chain to complete a single payment: (1) Create Customer → (2) Create Payment Method → (3) Create Transaction.
@@ -11,14 +13,24 @@ The Afriex Business API requires a complex, three-step chain to complete a singl
 
 ### 💡 Core Value Proposition (For Developers)
 
-Waya enables seamless integration of Afriex payouts by replacing the complex sequential logic with a powerful, parallel processing engine.
+Waya is not just a wrapper; it's the **data bridge** between a company's HR/Payroll system and the Afriex payment network. It allows platforms to integrate cross-border payouts without rewriting their entire data pipeline.
 
 | Feature | Afriex Direct (Multi-Call) | Waya Orchestrator (Single-Call) |
 | :--- | :--- | :--- |
-| **Workflow** | 3 separate sequential API calls per recipient. | **1** Asynchronous API call handles all steps concurrently. |
-| **Concurrency** | Limited by single thread loop. | Go **Goroutines** process payouts in parallel for instant volume. |
+| **Input Model** | Requires manual integration per customer and payment method. | **Input:** A single, standardized JSON array (derived from a CSV upload or a direct DB query). |
+| **Data Bridge** | Developer must manage all HR data (names, banks) and convert it into 3 Afriex API formats. | **Waya** accepts the raw employee/vendor list and transforms it into the necessary Afriex API calls in real-time. |
+| **Execution** | 3 separate sequential API calls per recipient. | Go **Goroutines** process all payouts concurrently for instant volume. |
 | **Status Model** | Must implement complex polling logic per recipient. | Single **Batch ID** for real-time status check on entire manifest. |
-| **Scalability** | Designed for simple transactions. | Designed for B2B Payroll/Vendor disbursement volume. |
+
+#### Developer Integration in 3 Steps:
+
+A developer integrates Waya by plugging their internal payroll data into our single `POST` endpoint.
+
+| Step | Action | Endpoint |
+| :--- | :--- | :--- |
+| **1. Bridge Data** | **Connect your Payroll DB or parse your employee CSV** into the required Waya JSON manifest format. | (Internal to your application) |
+| **2. Trigger Payout** | Send the complete manifest (e.g., 500 employees) to Waya’s orchestrator. | `POST /api/v1/payouts` |
+| **3. Monitor Status** | Check the live status of the entire batch against your internal records. | `GET /api/v1/payouts/{batch_id}` |
 
 ---
 
