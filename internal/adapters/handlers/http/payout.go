@@ -167,3 +167,27 @@ func (h *PayoutHandler) HandleAfriexWebhook(c echo.Context) error {
 	// 5. Respond Immediately (200 OK)
 	return c.String(http.StatusOK, "OK")
 }
+
+// @Summary List All Payouts
+// @Description Retrieves a complete, paginated list of all payout records for the Waya Admin Dashboard.
+// @Tags Payouts
+// @Produce json
+// @Success 200 {object} []domain.Payout "List of all payouts"
+// @Failure 500 {object} map[string]string "Server error"
+// @Router /payouts/all [get]
+func (h *PayoutHandler) HandleListAllPayouts(c echo.Context) error {
+    ctx := c.Request().Context()
+    
+    // Hardcode a high limit for the dashboard demo
+    limit := 100 
+    
+    payouts, err := h.service.ListPayouts(ctx, limit)
+
+    if err != nil {
+        slog.Error("Failed to list all payouts", "err", err)
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to retrieve payout history"})
+    }
+
+    // Return the list directly
+    return c.JSON(http.StatusOK, payouts)
+}

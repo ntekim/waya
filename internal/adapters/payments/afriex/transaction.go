@@ -1,11 +1,8 @@
 package afriex
 
-import "context"
-
-func (c *Client) FindPaymentMethod(ctx context.Context, customerID, accountNumber string) (string, error) {
-	return "", nil
-}
-
+import (
+	"context"
+)
 
 func (c *Client) CreatePaymentMethod(ctx context.Context, req CreatePaymentMethodRequest) (string, error) {
 	var resp PaymentMethodResponse

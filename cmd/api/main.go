@@ -110,6 +110,7 @@ func main() {
 
 	api.POST("/payouts", payoutHandler.HandleBulkPayout)
 	api.GET("/payouts/:batch_id", payoutHandler.GetBatchStatus)
+	api.GET("/payouts/all", payoutHandler.HandleListAllPayouts)
 	// WEBHOOK ROUTE (The new feature)
 // api.POST("/webhooks/afriex", payoutHandler.HandleAfriexWebhook)
 

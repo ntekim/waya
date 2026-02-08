@@ -96,47 +96,34 @@ func (s *PayoutService) ExecuteBatch(ctx context.Context, batchID string, payout
 func (s *PayoutService) processSinglePayout(ctx context.Context, p domain.Payout) {
 	s.repo.UpdatePayoutStatus(ctx, p.ID, domain.StatusProcessing, "")
 
-	// --- STEP 1: CHECK & CREATE CUSTOMER ---
-	custID, err := s.gateway.GetCustomerByEmail(ctx, p.RecipientEmail)
-	if err != nil && err.Error() != "not found" {
-		s.handleError(ctx, p, "Customer lookup error", err); return
+	// --- STEP 1: CREATE CUSTOMER ---
+	custID, err := s.gateway.CreateCustomer(ctx, afriex.CreateCustomerRequest{
+		FullName:    p.RecipientName,
+		Email:       "temp_" + p.RecipientTag + "@waya.com", // Fake email if not provided
+		Phone:       p.RecipientPhone,
+		CountryCode: p.CountryCode,
+	})
+	if err != nil {
+		s.handleError(ctx, p, "Failed to create customer", err)
+		return
 	}
 
-	if custID == "" {
-		// Customer NOT found: Create it
-		custID, err = s.gateway.CreateCustomer(ctx, afriex.CreateCustomerRequest{
-			FullName:    p.RecipientName,
-			Email:       "temp_" + p.RecipientTag + "@waya.com", // Fake email if not provided
-			Phone:       p.RecipientPhone,
-			CountryCode: p.CountryCode,
-		})
-		if err != nil {
-			s.handleError(ctx, p, "Failed to create customer", err)
-			return
-		}
-	}
+	// --- STEP 2: CREATE PAYMENT METHOD ---
+	
 
-	// --- STEP 2: CHECK & CREATE PAYMENT METHOD ---
-	pmID, err := s.gateway.FindPaymentMethod(ctx, custID, p.AccountNumber)
-	if err != nil && err.Error() != "not found" {
-		s.handleError(ctx, p, "Payment method lookup error", err); return
-	}
-
-	if pmID == "" {
-		pmID, err = s.gateway.CreatePaymentMethod(ctx, afriex.CreatePaymentMethodRequest{
-			Channel:       "BANK_ACCOUNT", // Or MOBILE_MONEY based on logic
-			CustomerID:    custID,
-			AccountName:   p.RecipientName,
-			AccountNumber: p.AccountNumber, // Add to Domain
-			CountryCode:   p.CountryCode,
-			Institution: afriex.Institution{
-				InstitutionCode: p.BankCode, // Add to Domain
-			},
-		})
-		if err != nil {
-			s.handleError(ctx, p, "Failed to link bank account", err)
-			return
-		}
+	pmID, err := s.gateway.CreatePaymentMethod(ctx, afriex.CreatePaymentMethodRequest{
+		Channel:       "BANK_ACCOUNT", // Or MOBILE_MONEY based on logic
+		CustomerID:    custID,
+		AccountName:   p.RecipientName,
+		AccountNumber: p.AccountNumber, // Add to Domain
+		CountryCode:   p.CountryCode,
+		Institution: afriex.Institution{
+			InstitutionCode: p.BankCode, // Add to Domain
+		},
+	})
+	if err != nil {
+		s.handleError(ctx, p, "Failed to link bank account", err)
+		return
 	}
 
 	// --- STEP 3: SEND MONEY ---
@@ -171,14 +158,6 @@ func (s *PayoutService) handleError(ctx context.Context, p domain.Payout, msg st
 
 // ListPayoutsByBatchID fetches all payouts belonging to a single batch.
 func (s *PayoutService) ListPayoutsByBatchID(ctx context.Context, batchID string) ([]domain.Payout, error) {
-	// WARNING: This is inefficient for a production system but works for a hackathon
-	// because we don't want to create a new SQL query file and a new SQLC call.
-	
-	// In a real app, you would add a SQL query like:
-	// -- name: ListPayoutsByBatchID :many SELECT * FROM payouts WHERE batch_id = ? ORDER BY created_at DESC;
-	
-
-	// For now, let's just use the ListPayouts and filter manually.
 	allPayouts, err := s.repo.ListPayoutsByBatchID(ctx, batchID)
 	if err != nil {
 		return nil, err
@@ -196,4 +175,28 @@ func (s *PayoutService) ListPayoutsByBatchID(ctx context.Context, batchID string
 	}
 
 	return batchPayouts, nil
+}
+
+func (s *PayoutService) ListPayouts(ctx context.Context, limit int) ([]domain.Payout, error) {
+    // NOTE: If your SQLC query does not accept 'limit', this might return all rows.
+    rows, err := s.repo.ListPayouts(ctx, limit) 
+    
+    var payouts []domain.Payout
+	for _, r := range rows {
+		payouts = append(payouts, domain.Payout{	
+			ID:             r.ID,
+			BatchID:        r.BatchID,
+			RecipientName:   r.RecipientName,
+			RecipientEmail:  r.RecipientEmail,
+			RecipientPhone:  r.RecipientPhone,
+			AccountNumber:   r.AccountNumber,
+			Currency:        r.Currency,
+			Amount:          r.Amount,
+			Status:          r.Status,
+			ErrorMessage:    r.ErrorMessage,
+			CreatedAt:       r.CreatedAt,
+		})
+	}
+
+	return payouts, err
 }

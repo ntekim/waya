@@ -1,10 +1,8 @@
 package afriex
 
-import "context"
-
-func (c *Client) GetCustomerByEmail(ctx context.Context, email string) (string, error) {
-	return "", nil
-}
+import (
+	"context"
+)
 
 func (c *Client) CreateCustomer(ctx context.Context, req CreateCustomerRequest) (string, error) {
 	var resp CustomerResponse
