@@ -13,9 +13,10 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	_ "waya/docs" // IMPORTANT: This triggers the Swagger init
+	wayaHandler "waya/internal/adapters/handlers/http"
+	"waya/internal/adapters/handlers/http/middlewares"
 	"waya/internal/adapters/payments/afriex"
 	wayaDB "waya/internal/adapters/storage/db"
-	wayaHandler "waya/internal/adapters/handlers/http"
 	"waya/internal/config"
 	"waya/internal/core/services"
 )
@@ -93,6 +94,10 @@ func main() {
 
 	// 6. Routes
 	api := e.Group("/api/v1")
+	// Apply the authentication middleware to the whole API group
+	api.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return middlewares.APIKeyAuth(next)
+	})
 	
     // Health Check
 	api.GET("/health", func(c echo.Context) error {
