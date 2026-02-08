@@ -21,13 +21,15 @@ import (
 type PayoutService struct {
 	repo    ports.PaymentRepository
 	gateway ports.AfriexGateway
+	notifier ports.ExternalClientNotifier
 	logger  *slog.Logger
 }
 
-func NewPayoutService(repo ports.PaymentRepository, gateway ports.AfriexGateway, logger *slog.Logger) *PayoutService {
+func NewPayoutService(repo ports.PaymentRepository, gateway ports.AfriexGateway, externaClientNotifier ports.ExternalClientNotifier, logger *slog.Logger) *PayoutService {
 	return &PayoutService{
 		repo:    repo,
 		gateway: gateway,
+		notifier: externaClientNotifier,
 		logger:  logger,
 	}
 }
@@ -72,39 +74,69 @@ func (s *PayoutService) ExecuteBatch(ctx context.Context, batchID string, payout
 	wg.Wait()
 	
 	slog.Info("✅ Batch Execution Complete", "batch_id", batchID)
+
+	// --- ASYNCHRONOUS CLIENT NOTIFICATION ---
+	// This should not block the main process, so run it in a new goroutine
+	go func() {
+		// 1. Fetch the final state of all payouts in the batch
+		finalPayouts, err := s.repo.ListPayoutsByBatchID(context.Background(), batchID)
+		if err != nil {
+			slog.Error("Failed to fetch final batch state for notification", "batch_id", batchID, "err", err)
+			return
+		}
+		
+		// 2. Notify the client system
+		if s.notifier != nil {
+			_ = s.notifier.NotifyBatchCompletion(context.Background(), batchID, finalPayouts)
+		}
+	}()
 	return nil
 }
 
 func (s *PayoutService) processSinglePayout(ctx context.Context, p domain.Payout) {
 	s.repo.UpdatePayoutStatus(ctx, p.ID, domain.StatusProcessing, "")
 
-	// --- STEP 1: CREATE CUSTOMER ---
-	// In a real app, you'd check DB if customer exists. For Hackathon, strict upsert or create.
-	custID, err := s.gateway.CreateCustomer(ctx, afriex.CreateCustomerRequest{
-		FullName:    p.RecipientName, // Need to add this to Domain Payout struct
-		Email:       "temp_" + p.RecipientTag + "@waya.com", // Fake email if not provided
-		Phone:       p.RecipientPhone, // Need to add this
-		CountryCode: p.CountryCode,    // Need to add this (e.g. "NG")
-	})
-	if err != nil {
-		s.handleError(ctx, p, "Failed to create customer", err)
-		return
+	// --- STEP 1: CHECK & CREATE CUSTOMER ---
+	custID, err := s.gateway.GetCustomerByEmail(ctx, p.RecipientEmail)
+	if err != nil && err.Error() != "not found" {
+		s.handleError(ctx, p, "Customer lookup error", err); return
 	}
 
-	// --- STEP 2: CREATE PAYMENT METHOD (BANK) ---
-	pmID, err := s.gateway.CreatePaymentMethod(ctx, afriex.CreatePaymentMethodRequest{
-		Channel:       "BANK_ACCOUNT", // Or MOBILE_MONEY based on logic
-		CustomerID:    custID,
-		AccountName:   p.RecipientName,
-		AccountNumber: p.AccountNumber, // Add to Domain
-		CountryCode:   p.CountryCode,
-		Institution: afriex.Institution{
-			InstitutionCode: p.BankCode, // Add to Domain
-		},
-	})
-	if err != nil {
-		s.handleError(ctx, p, "Failed to link bank account", err)
-		return
+	if custID == "" {
+		// Customer NOT found: Create it
+		custID, err = s.gateway.CreateCustomer(ctx, afriex.CreateCustomerRequest{
+			FullName:    p.RecipientName,
+			Email:       "temp_" + p.RecipientTag + "@waya.com", // Fake email if not provided
+			Phone:       p.RecipientPhone,
+			CountryCode: p.CountryCode,
+		})
+		if err != nil {
+			s.handleError(ctx, p, "Failed to create customer", err)
+			return
+		}
+	}
+
+	// --- STEP 2: CHECK & CREATE PAYMENT METHOD ---
+	pmID, err := s.gateway.FindPaymentMethod(ctx, custID, p.AccountNumber)
+	if err != nil && err.Error() != "not found" {
+		s.handleError(ctx, p, "Payment method lookup error", err); return
+	}
+
+	if pmID == "" {
+		pmID, err = s.gateway.CreatePaymentMethod(ctx, afriex.CreatePaymentMethodRequest{
+			Channel:       "BANK_ACCOUNT", // Or MOBILE_MONEY based on logic
+			CustomerID:    custID,
+			AccountName:   p.RecipientName,
+			AccountNumber: p.AccountNumber, // Add to Domain
+			CountryCode:   p.CountryCode,
+			Institution: afriex.Institution{
+				InstitutionCode: p.BankCode, // Add to Domain
+			},
+		})
+		if err != nil {
+			s.handleError(ctx, p, "Failed to link bank account", err)
+			return
+		}
 	}
 
 	// --- STEP 3: SEND MONEY ---

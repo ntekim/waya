@@ -17,6 +17,8 @@ type PaymentRepository interface {
 
 // AfriexGateway defines how we talk to the outside world (API Port)
 type AfriexGateway interface {
+	GetCustomerByEmail(ctx context.Context, email string) (string, error) // Returns customerID
+    FindPaymentMethod(ctx context.Context, customerID, accountNumber string) (string, error) // Returns paymentMethodID
 	// Step 1: Onboard
 	CreateCustomer(ctx context.Context, req afriex.CreateCustomerRequest) (string, error)
 	
@@ -28,6 +30,10 @@ type AfriexGateway interface {
 	
 	// Utils
 	GetRates(ctx context.Context, base, symbols string) (*afriex.RateResponse, error)
+}
+
+type ExternalClientNotifier interface{
+	NotifyBatchCompletion(ctx context.Context, batchID string, payouts []domain.Payout) error
 }
 
 // Data structures specifically for the Afriex Port

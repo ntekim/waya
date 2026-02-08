@@ -2,6 +2,11 @@ package afriex
 
 import "context"
 
+func (c *Client) FindPaymentMethod(ctx context.Context, customerID, accountNumber string) (string, error) {
+	return "", nil
+}
+
+
 func (c *Client) CreatePaymentMethod(ctx context.Context, req CreatePaymentMethodRequest) (string, error) {
 	var resp PaymentMethodResponse
 	err := c.do(ctx, "POST", "/api/v1/payment-method", req, &resp)

@@ -13,6 +13,7 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	_ "waya/docs" // IMPORTANT: This triggers the Swagger init
+	betaworkos "waya/internal/adapters/external/Betaworkos"
 	wayaHandler "waya/internal/adapters/handlers/http"
 	"waya/internal/adapters/handlers/http/middlewares"
 	"waya/internal/adapters/payments/afriex"
@@ -60,9 +61,12 @@ func main() {
     repo := wayaDB.NewRepository(db)
     afriexClient := afriex.NewClient(cfg.Afriex)
 
+	// --- Init Notifier ---
+    notifier := betaworkos.NewNotifier(cfg.Waya)
+
     // 2. Init Service
     // Note: We pass the standard Logger
-    svc := services.NewPayoutService(repo, afriexClient, slog.Default())
+    svc := services.NewPayoutService(repo, afriexClient, notifier, slog.Default())
 
     // 3. Init Handler
     payoutHandler := wayaHandler.NewPayoutHandler(svc)
@@ -96,7 +100,7 @@ func main() {
 	api := e.Group("/api/v1")
 	// Apply the authentication middleware to the whole API group
 	api.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return middlewares.APIKeyAuth(next)
+		return middlewares.APIKeyAuth(next, cfg.Waya.APIKey)
 	})
 	
     // Health Check

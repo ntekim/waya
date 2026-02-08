@@ -2,6 +2,10 @@ package afriex
 
 import "context"
 
+func (c *Client) GetCustomerByEmail(ctx context.Context, email string) (string, error) {
+	return "", nil
+}
+
 func (c *Client) CreateCustomer(ctx context.Context, req CreateCustomerRequest) (string, error) {
 	var resp CustomerResponse
 	err := c.do(ctx, "POST", "/api/v1/customer", req, &resp)

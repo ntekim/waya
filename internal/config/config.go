@@ -36,7 +36,8 @@ type AfriexConfig struct {
 }
 
 type WayaConfig struct {
-	APIKey string `mapstructure:"WAYA_API_KEY"`
+    APIKey string `mapstructure:"WAYA_API_KEY"`
+    BETAWORKOSWebhookURL string `mapstructure:"BETAWORKOS_WEBHOOK_URL"` // New field
 }
 
 type AIConfig struct {
@@ -83,6 +84,13 @@ func LoadConfig(path string) (*Config, error) {
 	if cfg.Afriex.APIKey == "" && cfg.Server.Environment != "development" {
 		return nil, errors.New("AFRIEX_API_KEY is required in production")
 	}
+
+	// --- Init Waya Config (Need this for Notifier and Auth) ---
+    // You'll need to create a WayaConfig loader in internal/config
+    // wayaCfg := config.WayaConfig{
+    //     APIKey: viper.GetString("WAYA_API_KEY"),
+    //     ClientWebhookURL: viper.GetString("CLIENT_WEBHOOK_URL"),
+    // }
 
 	return &cfg, nil
 }
