@@ -14,6 +14,7 @@ type Config struct {
 	Database DatabaseConfig `mapstructure:",squash"`
 	Afriex   AfriexConfig   `mapstructure:",squash"`
 	AI       AIConfig       `mapstructure:",squash"`
+	Waya     WayaConfig     `mapstructure:",squash"`
 }
 
 type ServerConfig struct {
@@ -34,6 +35,10 @@ type AfriexConfig struct {
 	WebhookKey string `mapstructure:"AFRIEX_WEBHOOK_SECRET"`
 }
 
+type WayaConfig struct {
+	APIKey string `mapstructure:"WAYA_API_KEY"`
+}
+
 type AIConfig struct {
 	OpenAIKey string `mapstructure:"OPENAI_API_KEY"`
 }
@@ -49,7 +54,7 @@ func LoadConfig(path string) (*Config, error) {
 	v.SetDefault("WRITE_TIMEOUT", 10*time.Second)
 	v.SetDefault("DB_DRIVER", "sqlite3")
 	v.SetDefault("DB_SOURCE", "./waya.db")
-	v.SetDefault("AFRIEX_BASE_URL", "https://api.afriex.co/v1") // Mock URL for now
+	v.SetDefault("AFRIEX_BASE_URL", "https://staging.afx-server.com") // Mock URL for now
 
 	// 2. Read from .env file
 	v.AddConfigPath(path)
