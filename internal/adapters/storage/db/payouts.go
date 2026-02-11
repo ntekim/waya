@@ -100,13 +100,19 @@ func (r *SQLiteRepo) ListPayouts(ctx context.Context, limit int) ([]domain.Payou
     var payouts []domain.Payout
     for _, row := range rows {
         payouts = append(payouts, domain.Payout{
-            ID:           row.ID,
-			BatchID: row.BatchID.String,
-            RecipientTag: row.RecipientTag.String,
-            Amount:       row.Amount,
-            Currency:     row.Currency,
-            Status:       row.Status,
-            CreatedAt:    row.CreatedAt.Time,
+            ID:             row.ID,
+            BatchID:        row.BatchID.String,
+            ReferenceID:    row.ReferenceID,
+            RecipientName:  row.RecipientName,
+            RecipientPhone: row.RecipientPhone,
+            RecipientEmail: row.RecipientEmail.String,
+            CountryCode:    row.CountryCode,
+            BankCode:       row.BankCode.String,
+            AccountNumber:  row.AccountNumber.String,
+            BankName:       row.BankName.String,
+            Amount:         row.Amount,
+            Currency:       row.Currency,
+            Status:         row.Status,
         })
     }
 

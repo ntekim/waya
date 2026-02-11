@@ -77,7 +77,15 @@ func main() {
 
 	// 5. Middleware Stack
 	e.Use(middleware.Recover()) // Don't crash on panic
-	e.Use(middleware.CORS())    // Allow Frontend access
+	// 5. Middleware Stack
+	e.Use(middleware.Recover())
+	// FIX: Configure CORS to allow your frontend port (3000)
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{"http://localhost:3000"}, // Allow Next.js frontend
+		AllowMethods:     []string{http.MethodGet, http.MethodPost},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, "x-api-key"}, // Allow custom header
+		AllowCredentials: true,
+	}))
 	e.Use(middleware.RequestID()) 
     
     // Custom Slog Middleware for Echo
